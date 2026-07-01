@@ -1,0 +1,14 @@
+fn add_numbers(a: i32, b: i32) -> i32 {
+    ret a + b;
+}
+
+fn multiply(x: i32, y: i32) -> i32 {
+    ret x * y;
+}
+
+fn main() -> void {
+    let x = 5;
+    let y = 10;
+    let sum = add_numbers(x, y);
+    let product = multiply(x, y);
+}
