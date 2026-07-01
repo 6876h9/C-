@@ -23,10 +23,10 @@ using DeclPtr     = std::unique_ptr<Decl>;
 // ─── Type expressions ────────────────────────────────────────────────────────
 
 enum class PrimitiveType {
-    I8, I16, I32, I64,
-    U8, U16, U32, U64,
-    F32, F64,
-    Bool, Void, Char,
+    Int,    // 64-bit signed integer
+    Float,  // 64-bit IEEE 754 double
+    Char,   // single byte character
+    Void,   // no type (functions)
 };
 
 struct TypeExpr {

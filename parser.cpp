@@ -50,16 +50,17 @@ void Parser::error(const SourceLocation& loc, const char* msg) {
 
 void Parser::synchronize() {
     while (!at_end()) {
-        if (peek(-1 + 0).kind == TokenKind::SEMICOLON) return;
+        if (peek().kind == TokenKind::NEWLINE) {
+            advance();
+            return;
+        }
         switch (peek().kind) {
-            case TokenKind::KW_FN:
+            case TokenKind::KW_FUNC:
             case TokenKind::KW_STRUCT:
-            case TokenKind::KW_LET:
-            case TokenKind::KW_RET:
+            case TokenKind::KW_RETURN:
             case TokenKind::KW_IF:
             case TokenKind::KW_WHILE:
             case TokenKind::KW_FOR:
-            case TokenKind::KW_LOOP:
                 return;
             default: break;
         }
@@ -83,16 +84,10 @@ std::unique_ptr<Module> Parser::parse_module(const std::string& name) {
 }
 
 DeclPtr Parser::parse_decl() {
-    bool is_pub = false;
-    if (match(TokenKind::KW_PUB)) is_pub = true;
+    if (check(TokenKind::KW_FUNC))     return parse_fn(false);
+    if (check(TokenKind::KW_STRUCT)) return parse_struct(false);
 
-    if (check(TokenKind::KW_FN))     return parse_fn(is_pub);
-    if (check(TokenKind::KW_STRUCT)) return parse_struct(is_pub);
-    if (check(TokenKind::KW_EXTERN)) return parse_extern();
-    if (check(TokenKind::KW_IMPORT)) return parse_import();
-    if (check(TokenKind::KW_LET))    return parse_global(is_pub);
-
-    error(peek().loc, "expected declaration (fn, struct, let, extern, import)");
+    error(peek().loc, "expected declaration (func, struct)");
     advance();
     return nullptr;
 }
@@ -103,29 +98,21 @@ DeclPtr Parser::parse_fn(bool is_pub) {
     d->is_pub = is_pub;
     d->loc    = peek().loc;
 
-    expect(TokenKind::KW_FN, "expected 'fn'");
+    expect(TokenKind::KW_FUNC, "expected 'func'");
     d->fn_name = expect(TokenKind::IDENT, "expected function name").text;
     expect(TokenKind::LPAREN, "expected '(' after function name");
 
     while (!check(TokenKind::RPAREN) && !at_end()) {
-        if (check(TokenKind::DOT_DOT)) {
-            advance();
-            d->is_variadic = true;
-            break;
-        }
         d->params.push_back(parse_param());
         if (!match(TokenKind::COMMA)) break;
     }
     expect(TokenKind::RPAREN, "expected ')' after parameter list");
 
-    if (match(TokenKind::ARROW)) {
-        d->ret_type = parse_type();
-    } else {
-        auto vt = std::make_unique<TypeExpr>();
-        vt->kind = TypeExpr::Kind::Primitive;
-        vt->primitive = PrimitiveType::Void;
-        d->ret_type = std::move(vt);
-    }
+    // C-minus functions default to void return type
+    auto vt = std::make_unique<TypeExpr>();
+    vt->kind = TypeExpr::Kind::Primitive;
+    vt->primitive = PrimitiveType::Void;
+    d->ret_type = std::move(vt);
 
     d->body = parse_block();
     return d;

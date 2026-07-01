@@ -8,46 +8,26 @@
 namespace cminus {
 
 const std::unordered_map<std::string, TokenKind> Lexer::KEYWORDS = {
-    {"fn",       TokenKind::KW_FN},
-    {"let",      TokenKind::KW_LET},
-    {"mut",      TokenKind::KW_MUT},
-    {"ret",      TokenKind::KW_RET},
+    {"func",     TokenKind::KW_FUNC},
+    {"struct",   TokenKind::KW_STRUCT},
+    {"return",   TokenKind::KW_RETURN},
     {"if",       TokenKind::KW_IF},
     {"else",     TokenKind::KW_ELSE},
-    {"loop",     TokenKind::KW_LOOP},
     {"while",    TokenKind::KW_WHILE},
     {"for",      TokenKind::KW_FOR},
-    {"in",       TokenKind::KW_IN},
     {"break",    TokenKind::KW_BREAK},
     {"continue", TokenKind::KW_CONTINUE},
-    {"struct",   TokenKind::KW_STRUCT},
-    {"extern",   TokenKind::KW_EXTERN},
-    {"asm",      TokenKind::KW_ASM},
-    {"import",   TokenKind::KW_IMPORT},
-    {"as",       TokenKind::KW_AS},
-    {"null",     TokenKind::KW_NULL},
-    {"sizeof",   TokenKind::KW_SIZEOF},
-    {"cast",     TokenKind::KW_CAST},
-    {"pub",      TokenKind::KW_PUB},
-    {"true",     TokenKind::BOOL_LIT},
-    {"false",    TokenKind::BOOL_LIT},
-    {"i8",       TokenKind::TY_I8},
-    {"i16",      TokenKind::TY_I16},
-    {"i32",      TokenKind::TY_I32},
-    {"i64",      TokenKind::TY_I64},
-    {"u8",       TokenKind::TY_U8},
-    {"u16",      TokenKind::TY_U16},
-    {"u32",      TokenKind::TY_U32},
-    {"u64",      TokenKind::TY_U64},
-    {"f32",      TokenKind::TY_F32},
-    {"f64",      TokenKind::TY_F64},
-    {"bool",     TokenKind::TY_BOOL},
-    {"void",     TokenKind::TY_VOID},
+    {"grp",      TokenKind::KW_GRP},
+    {"opengl",   TokenKind::KW_OPENGL},
+    {"color",    TokenKind::KW_COLOR},
+    {"int",      TokenKind::TY_INT},
+    {"float",    TokenKind::TY_FLOAT},
     {"char",     TokenKind::TY_CHAR},
+    {"void",     TokenKind::TY_VOID},
 };
 
 bool Token::is_type_keyword() const {
-    return kind >= TokenKind::TY_I8 && kind <= TokenKind::TY_CHAR;
+    return kind >= TokenKind::TY_INT && kind <= TokenKind::TY_VOID;
 }
 
 bool Token::is_assignment_op() const {
@@ -62,13 +42,10 @@ const char* Token::kind_name() const {
     switch (kind) {
 #define K(x) case TokenKind::x: return #x;
         K(INTEGER_LIT) K(FLOAT_LIT) K(STRING_LIT) K(CHAR_LIT) K(BOOL_LIT)
-        K(IDENT) K(KW_FN) K(KW_LET) K(KW_MUT) K(KW_RET) K(KW_IF) K(KW_ELSE)
-        K(KW_LOOP) K(KW_WHILE) K(KW_FOR) K(KW_BREAK) K(KW_CONTINUE)
-        K(KW_STRUCT) K(KW_EXTERN) K(KW_ASM) K(KW_IMPORT) K(KW_AS) K(KW_IN)
-        K(KW_NULL) K(KW_SIZEOF) K(KW_CAST) K(KW_PUB)
-        K(TY_I8) K(TY_I16) K(TY_I32) K(TY_I64)
-        K(TY_U8) K(TY_U16) K(TY_U32) K(TY_U64)
-        K(TY_F32) K(TY_F64) K(TY_BOOL) K(TY_VOID) K(TY_CHAR)
+        K(IDENT) K(KW_FUNC) K(KW_STRUCT) K(KW_RETURN) K(KW_IF) K(KW_ELSE)
+        K(KW_WHILE) K(KW_FOR) K(KW_BREAK) K(KW_CONTINUE)
+        K(KW_GRP) K(KW_OPENGL) K(KW_COLOR)
+        K(TY_INT) K(TY_FLOAT) K(TY_CHAR) K(TY_VOID)
         K(PLUS) K(MINUS) K(STAR) K(SLASH) K(PERCENT)
         K(AMPERSAND) K(PIPE) K(CARET) K(TILDE) K(LSHIFT) K(RSHIFT)
         K(BANG) K(AND_AND) K(OR_OR)
@@ -79,6 +56,7 @@ const char* Token::kind_name() const {
         K(LPAREN) K(RPAREN) K(LBRACE) K(RBRACE) K(LBRACKET) K(RBRACKET)
         K(SEMICOLON) K(COLON) K(COLON_COLON) K(COMMA) K(DOT) K(DOT_DOT)
         K(ARROW) K(FAT_ARROW) K(AT) K(HASH) K(DOLLAR)
+        K(CARET_OP) K(STAR_DEREF) K(NEWLINE)
         K(EOF_TOKEN) K(ERROR)
 #undef K
         default: return "UNKNOWN";
@@ -132,7 +110,7 @@ Token Lexer::error_tok(const char* msg) {
 void Lexer::skip_whitespace() {
     while (!at_end()) {
         char c = peek();
-        if (std::isspace((unsigned char)c)) {
+        if (c == ' ' || c == '\t' || c == '\r') {
             advance();
         } else if (c == '/' && peek(1) == '/') {
             while (!at_end() && peek() != '\n') advance();
@@ -158,6 +136,13 @@ Token Lexer::next_token() {
 
     SourceLocation loc = current_loc();
     char c = peek();
+
+    if (c == '\n') {
+        advance();
+        m_line++;
+        m_col = 1;
+        return Token(TokenKind::NEWLINE, "\n", loc);
+    }
 
     if (std::isdigit((unsigned char)c)) return lex_number();
     if (c == '"') return lex_string();
