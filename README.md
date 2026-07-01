@@ -1,82 +1,125 @@
-# C-
+# C-minus Compiler
 
-A low-level systems programming language compiler written in C++17, targeting x86_64 architecture.
+A minimal, low-level systems programming language that compiles to x86-64 assembly with built-in graphics support and static memory safety analysis.
 
 ## Overview
 
-C- is a minimal yet functional programming language that compiles directly to x86_64 machine code. It combines C-style syntax with modern language features, focusing on performance and control.
+C-minus is designed to bridge the gap between high-level programming convenience and low-level control. It provides a simple syntax without semicolons, explicit type inference, and integrated OpenGL graphics capabilities while maintaining freestanding operation on x86-64 architecture.
 
-## Features
+### Key Features
 
-- **Primitive Types**: i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, bool, char, void
-- **Pointers**: Both immutable and mutable pointer types
-- **Arrays & Slices**: Fixed-size arrays and slice types
-- **Structs**: User-defined data types with field access
-- **Functions**: First-class functions with variadic support
-- **Control Flow**: if/else, while, loop, for-in range loops, break, continue
-- **Operators**: Arithmetic, bitwise, logical, comparison, assignment
-- **Inline Assembly**: Direct x86_64 assembly integration
-- **Type Safety**: Static type checking with inference
+- **Newline-terminated statements** — No semicolons required. Statements end at newline.
+- **Type inference** — Variable types inferred from initialization values: `x = (42)` infers int.
+- **Simplified type system** — Four primitive types: int (64-bit), float (64-bit IEEE 754), char, void.
+- **Struct support** — User-defined structures with field access via `^` dereference operator.
+- **Graphics integration** — Built-in OpenGL API with graphics protocol initialization.
+- **Memory safety analysis** — Static analysis detects null pointer dereference, buffer overflow, uninitialized variables.
+- **Freestanding operation** — No standard library dependency. Stack-only memory allocation.
+- **x86-64 code generation** — Direct assembly emission targeting System V AMD64 ABI.
 
-## Language Syntax
+## Language Specification
 
-### Variables
-```c-
-let x: i32 = 42;
-let mut y = 100;
+### Variable Declaration
+
+```c
+x = (42)
+y = (3.14)
+name = ("hello")
+count: int = (100)
 ```
+
+Type is inferred from the initialization value. Explicit type annotation uses colon syntax.
+
+### Struct Definition and Instantiation
+
+```c
+struct Point {
+    x = (0)
+    y = (0)
+}
+
+p = *(100, 200)
+print(^p.x)
+```
+
+Struct fields are initialized with default values. Instantiation uses `*` operator with positional arguments. Field access requires `^` dereference.
 
 ### Functions
-```c-
-fn add(a: i32, b: i32) -> i32 {
-    ret a + b;
-};
 
-fn main() -> void {
-    let result = add(10, 20);
-};
+```c
+func main() {
+    x = (10)
+}
+
+func add(a: int, b: int) {
+    result = (a + b)
+}
 ```
 
-### Structs
-```c-
-struct Point {
-    x: i32,
-    y: i32,
-};
-
-fn create_point() -> void {
-    let p = Point { .x = 5, .y = 10 };
-};
-```
+Functions declared with `func` keyword. Parameters require explicit type annotation. Functions default to void return type.
 
 ### Control Flow
-```c-
-fn example() -> void {
-    if condition {
-        // true branch
-    } else {
-        // false branch
-    };
-    
-    while x < 100 {
-        x = x + 1;
-    };
-    
-    for i in 0..10 {
-        // loop body
-    };
-};
+
+```c
+if x > 5 {
+    y = (1)
+} else {
+    y = (0)
+}
+
+while count > 0 {
+    count = (count - 1)
+}
+
+for i = (0); i < 10; i = (i + 1) {
+    sum = (sum + i)
+}
 ```
 
-### Pointers & References
-```c-
-let ptr: *i32 = &x;
-let value = *ptr;
+Standard if/else, while, and for loops. All conditions must be expressions.
+
+### Graphics API
+
+```c
+grp.var.init()
+opengl.screen.start(1920, 1080, "1080p")
+opengl.screen.vector(100, 200, grp.var.init(coord))
+opengl.screen.draw(grp.var.call(coord), color[255, 0, 0])
 ```
 
-## Building
+Graphics operations require initialization via `grp.var.init()`. Coordinates stored via `init()`, retrieved via `call()`. Colors specified as RGB values in brackets.
 
-### Using CMake
+## Project Structure
+
+```
+C-minus/
+├── lexer.cpp / lexer.h      — Tokenization with newline handling
+├── parser.cpp / parser.h    — AST construction from token stream
+├── ast.h                    — Abstract syntax tree definitions
+├── typechecker.cpp / .h     — Type inference and memory safety analysis
+├── codegen.cpp / codegen.h  — x86-64 assembly code generation
+├── driver.cpp / driver.h    — Compiler driver and entry point
+├── token.h                  — Token type enumeration
+├── main.cpp                 — CLI entry point
+├── CMakeLists.txt           — Build configuration
+├── Makefile                 — Alternative build
+├── examples/                — Example C-minus programs
+├── cminus_codex_prompt.md   — Language specification for AI tools
+├── COMPILER_CHANGES.md      — Summary of implementation changes
+└── PARSER_IMPLEMENTATION_ROADMAP.md — Step-by-step parser completion guide
+```
+
+## Build Instructions
+
+### Requirements
+
+- C++17 or later
+- CMake 3.15+
+- NASM (for assembly processing)
+- Standard C library
+
+### Compilation
+
 ```bash
 mkdir build
 cd build
@@ -84,132 +127,115 @@ cmake ..
 make
 ```
 
-### Using Make
-```bash
-make
-```
-
-### Using g++ directly
-```bash
-g++ -std=c++17 -Wall -Wextra -O2 *.cpp -o cminus
-```
-
-## Usage
+### Running
 
 ```bash
-./cminus input.cm -o output.s      # Generate assembly
-./cminus input.cm -S               # Assembly only (default output: a.out.s)
-./cminus input.cm -c               # Object file
-./cminus input.cm -dump-tokens     # Debug: show tokens
-./cminus input.cm -dump-ast        # Debug: show AST
-./cminus input.cm -v               # Verbose output
+./cminus input.cm -o output.s
 ```
 
-## Compiler Pipeline
+Produces x86-64 assembly file. Link with C runtime:
 
-1. **Lexing** (lexer.cpp): Tokenizes source code
-2. **Parsing** (parser.cpp): Builds abstract syntax tree
-3. **Type Checking** (typechecker.cpp): Validates types and scopes
-4. **Code Generation** (codegen.cpp): Emits x86_64 AT&T syntax assembly
-
-## Project Structure
-
-```
-cminus/
-├── token.h              # Token definitions
-├── ast.h                # AST node structures
-├── lexer.h/cpp          # Lexical analysis
-├── parser.h/cpp         # Syntax analysis
-├── typechecker.h/cpp    # Semantic analysis & type checking
-├── codegen.h/cpp        # x86_64 code generation
-├── driver.h/cpp         # Compiler driver & CLI
-├── main.cpp             # Entry point
-├── CMakeLists.txt       # CMake configuration
-├── Makefile             # GNU Make configuration
-└── README.md            # This file
+```bash
+gcc output.s -o executable
+./executable
 ```
 
-## Example Programs
+## Implementation Status
 
-### Hello World (pseudo)
-```c-
-extern fn puts(s: *i8) -> i32;
+### Completed
 
-fn main() -> void {
-    puts("Hello, World!");
-};
+- Lexer: Full tokenization with newline-aware statement termination
+- Token definitions: All C-minus token types defined
+- AST: Simplified primitive type system (int, float, char, void)
+- Parser: Entry points updated for func/struct declarations
+- Core infrastructure: Driver, module handling, error reporting
+
+### In Progress
+
+- Statement-level parsing with newline handling
+- Variable declaration parsing: `VAR = (VALUE)` syntax
+- Struct instantiation: `struct Name s = *(field1, field2)`
+- Struct field dereference: `^instance.field`
+- Graphics API method chaining
+
+### Not Started
+
+- Type inference engine
+- Memory safety analysis (null pointer, buffer overflow detection)
+- Code generation for x86-64
+- Optimization passes
+
+## Parser Implementation Roadmap
+
+Six phases remain for complete parser implementation:
+
+1. **Block parsing** — Handle newline-terminated statements within braces
+2. **Variable declaration** — Parse `VAR = (VALUE)` and `VAR: TYPE = (VALUE)`
+3. **Struct instantiation** — Parse `struct Name s = *(values)`
+4. **Struct field access** — Parse `^instance.field`
+5. **Graphics API** — Automatic via postfix expression parsing
+6. **Type parsing** — Simplify to int, float, char, void only
+
+Detailed implementation guide with code samples available in `PARSER_IMPLEMENTATION_ROADMAP.md`.
+
+## Example Program
+
+```c
+struct Vertex {
+    x = (0.0)
+    y = (0.0)
+    z = (0.0)
+}
+
+func render_triangle(v1: Vertex, v2: Vertex, v3: Vertex) {
+    grp.var.init()
+    opengl.screen.start(800, 600, "1080p")
+    
+    opengl.screen.vector(^v1.x, ^v1.y, grp.var.init(vert1))
+    opengl.screen.draw(grp.var.call(vert1), color[255, 0, 0])
+    
+    opengl.screen.vector(^v2.x, ^v2.y, grp.var.init(vert2))
+    opengl.screen.draw(grp.var.call(vert2), color[0, 255, 0])
+    
+    opengl.screen.vector(^v3.x, ^v3.y, grp.var.init(vert3))
+    opengl.screen.draw(grp.var.call(vert3), color[0, 0, 255])
+}
+
+func main() {
+    v1 = *(100.0, 100.0, 0.0)
+    v2 = *(200.0, 100.0, 0.0)
+    v3 = *(150.0, 200.0, 0.0)
+    
+    render_triangle(v1, v2, v3)
+}
 ```
 
-### Fibonacci
-```c-
-fn fib(n: i32) -> i32 {
-    if n <= 1 {
-        ret n;
-    };
-    ret fib(n - 1) + fib(n - 2);
-};
+## Contributing
 
-fn main() -> void {
-    let result = fib(10);
-};
-```
+Development focuses on completing the parser implementation. Follow the roadmap in `PARSER_IMPLEMENTATION_ROADMAP.md` for specific implementation tasks.
 
-## Type System
+Testing should include:
+- Lexer unit tests for each token type
+- Parser tests for each language construct
+- Type checker tests for inference and safety analysis
+- Codegen tests verifying correct x86-64 assembly output
 
-- **Integers**: Signed (i8, i16, i32, i64) and unsigned (u8, u16, u32, u64)
-- **Floats**: f32, f64
-- **Boolean**: bool
-- **Char**: char
-- **Pointers**: *T and *mut T
-- **Arrays**: [T; N]
-- **Slices**: [T]
-- **Structs**: Named composite types
-- **Functions**: fn(T1, T2) -> R
+## Documentation
 
-## Assembly Output
-
-The compiler generates AT&T syntax x86_64 assembly compatible with GNU as (gas). Output includes:
-- Function prologues/epilogues
-- Stack frame management
-- Register allocation
-- System V AMD64 ABI calling convention compliance
-
-## Limitations
-
-- No heap allocation or memory management (planned)
-- No generics or polymorphism (planned)
-- No pattern matching (planned)
-- Limited library support
-- x86_64 Linux target only
-
-## Future Enhancements
-
-- [ ] LLVM backend support
-- [ ] Generic types and templates
-- [ ] Pattern matching
-- [ ] Standard library
-- [ ] Module system
-- [ ] Error handling
-- [ ] Additional architecture targets
-
-## Development
-
-To extend the compiler:
-
-1. **Add keywords**: Modify `Lexer::KEYWORDS` in lexer.cpp
-2. **Add types**: Extend `PrimitiveType` enum in ast.h
-3. **Add AST nodes**: Extend `Expr::Kind`, `Stmt::Kind`, or `Decl::Kind`
-4. **Implement parsing**: Add parsing methods in parser.cpp
-5. **Implement type checking**: Add type checking in typechecker.cpp
-6. **Implement code generation**: Add codegen in codegen.cpp
+- `cminus_codex_prompt.md` — Complete language specification suitable for use with AI code generation tools
+- `COMPILER_CHANGES.md` — Detailed summary of all code modifications and rationale
+- `PARSER_IMPLEMENTATION_ROADMAP.md` — Phase-by-phase implementation guide with exact code samples
 
 ## License
 
-Open source. Use freely in your projects.
+MIT License. See LICENSE file for details.
 
-## Notes
+## Author
 
-- This is a systems programming language focused on low-level control
-- Performance is a primary design goal
-- Safety mechanisms are minimal; undefined behavior is user responsibility
-- Assembly generation is unoptimized but functional
+6876h9 (GitHub handle)
+
+## References
+
+- System V AMD64 ABI specification
+- x86-64 instruction set reference
+- OpenGL API documentation
